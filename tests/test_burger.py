@@ -1,5 +1,7 @@
 from unittest.mock import Mock
 
+import pytest
+
 from praktikum_app.data import Data
 from praktikum_app.ingredient_types import INGREDIENT_TYPE_SAUCE, INGREDIENT_TYPE_FILLING
 from src.bun import Bun
@@ -17,7 +19,7 @@ class TestBurger:
 
     def test_add_ingredient_to_the_list(self):
         burger = Burger()
-        ingredient = Ingredient(INGREDIENT_TYPE_SAUCE, 'Ананас', 66)
+        ingredient = Ingredient(INGREDIENT_TYPE_SAUCE, Data.SAUCE_NAME, Data.SAUCE_PRICE)
         burger.add_ingredient(ingredient)
 
         assert burger.ingredients[0] == ingredient
@@ -56,24 +58,26 @@ class TestBurger:
 
         assert burger.get_price() == 200
 
-    def test_get_burger_receipt(self):
+    @pytest.mark.parametrize(
+        'bun_name, bun_price, sauce_type, sauce_name, sauce_price, filling_type, filling_name, filling_price', Data.DATA
+    )
+    def test_get_burger_receipt(self, bun_name, bun_price, sauce_type, sauce_name, sauce_price, filling_type,
+                                filling_name, filling_price):
         burger = Burger()
+        bun = Bun(bun_name, bun_price)
+        sauce = Ingredient(sauce_type, sauce_name, sauce_price)
+        filling = Ingredient(filling_type, filling_name, filling_price)
+        burger.set_buns(bun)
+        burger.add_ingredient(sauce)
+        burger.add_ingredient(filling)
+        expected_price = bun_price * 2 + sauce_price + filling_price
 
-        mock_bun = Mock()
-        mock_bun.get_price.return_value = Data.BUN_PRICE
-        mock_bun.get_name.return_value = Data.BUN_NAME
-        burger.set_buns(mock_bun)
+        price = int(burger.get_receipt()[-3] + burger.get_receipt()[-2] + burger.get_receipt()[-1])
 
-        mock_sauce = Mock()
-        mock_sauce.get_price.return_value = Data.SAUCE_PRICE
-        mock_sauce.get_type.return_value = INGREDIENT_TYPE_SAUCE
-        mock_sauce.get_name.return_value = Data.SAUCE_NAME
-        burger.add_ingredient(mock_sauce)
+        assert bun_name in burger.get_receipt()
+        assert sauce_type.lower() in burger.get_receipt()
+        assert sauce_name in burger.get_receipt()
+        assert filling_type.lower() in burger.get_receipt()
+        assert filling_name in burger.get_receipt()
 
-        price = int(burger.get_receipt()[-3]+burger.get_receipt()[-2]+burger.get_receipt()[-1])
-
-        assert INGREDIENT_TYPE_SAUCE.lower() in burger.get_receipt()
-        assert Data.SAUCE_NAME in burger.get_receipt()
-        assert Data.BUN_NAME in burger.get_receipt()
-
-        assert price == Data.BUN_PRICE*2 + Data.SAUCE_PRICE
+        assert price == expected_price
